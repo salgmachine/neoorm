@@ -8,6 +8,7 @@ import jo4neo.fluent.Where;
 
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.index.Index;
 
 /**
  * Interface used to interact with neo4j in an object oriented manner.
@@ -172,5 +173,9 @@ public interface ObjectGraph {
 	<T> Collection<T> get(Class<T> t, String indexname, Object value);
 	
 	<T> Collection<T> fullTextQuery(Class<T> t, String indexname, Object value);
+	
+	public Node getRefnode();
+	
+	public Index<Node> getIndexService(boolean fulltext);
 
 }

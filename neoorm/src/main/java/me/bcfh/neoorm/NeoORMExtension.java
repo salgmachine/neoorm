@@ -31,12 +31,17 @@ import jo4neo.ObjectGraph;
 import jo4neo.ObjectGraphFactory;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.kernel.EmbeddedReadOnlyGraphDatabase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NeoORMExtension implements Extension {
+
+	private static final NeoRoot root = new NeoRoot();
+
+	private static Map<String, Node> refNodes = new HashMap<String, Node>();
 
 	/**
 	 * This is an inner class which produces neo4j graphDatabaseService
@@ -58,6 +63,7 @@ public class NeoORMExtension implements Extension {
 			GraphDatabaseService graphDb = new GraphDatabaseFactory()
 					.newEmbeddedDatabaseBuilder(dbPath).newGraphDatabase();
 			graphDBs.put(dbPath, graphDb);
+			refNodes.put(dbPath, graphDb.getReferenceNode());
 			registerShutdownHook(graphDb);
 			EmbeddedReadOnlyGraphDatabase ro = (EmbeddedReadOnlyGraphDatabase) graphDb;
 			return ro;
@@ -73,6 +79,7 @@ public class NeoORMExtension implements Extension {
 			}
 			GraphDatabaseService graphDb = new GraphDatabaseFactory()
 					.newEmbeddedDatabaseBuilder(dbPath).newGraphDatabase();
+
 			graphDBs.put(dbPath, graphDb);
 			registerShutdownHook(graphDb);
 			return graphDb;
@@ -101,6 +108,7 @@ public class NeoORMExtension implements Extension {
 
 		public NeoORM wrapNeoORM(GraphDatabaseService svc) {
 			NeoORM orm = new NeoORM();
+			orm.setSvc(svc);
 			ObjectGraph og = ObjectGraphFactory.instance().get(svc);
 			orm.setObjectGraph(og);
 			return orm;
@@ -294,11 +302,13 @@ public class NeoORMExtension implements Extension {
 
 				if (instances.containsKey(path)) {
 					// old instance
-					svc = instances.get(path).getObjectGraph().getRefnode()
-							.getGraphDatabase();
+					svc = instances.get(path).getSvc();
+					// getObjectGraph().getRefnode()
+					// .getGraphDatabase();
 				} else {
 					// new instance
 					svc = GraphDatabaseProducer.instance().getInstance(path);
+					refNodes.put(path, svc.getReferenceNode());
 				}
 			} else {
 				// found annotation is missing string value,
@@ -323,12 +333,12 @@ public class NeoORMExtension implements Extension {
 						path = fromClasspath;
 						if (instances.containsKey(path)) {
 							// old instance
-							svc = instances.get(path).getObjectGraph().getRefnode()
-									.getGraphDatabase();
+							svc = instances.get(path).getSvc();
 						} else {
 							// new instance
 							svc = GraphDatabaseProducer.instance().getInstance(
 									path);
+							refNodes.put(path, svc.getReferenceNode());
 						}
 						// continue, as from here on we ignore
 						// any jvm args
@@ -337,8 +347,7 @@ public class NeoORMExtension implements Extension {
 						// then look for jvm param
 						if (instances.containsKey(path)) {
 							// old instance
-							svc = instances.get(path).getObjectGraph().getRefnode()
-									.getGraphDatabase();
+							svc = instances.get(path).getSvc();
 						} else {
 							// new instance
 							svc = GraphDatabaseProducer.instance().getInstance(
@@ -347,8 +356,7 @@ public class NeoORMExtension implements Extension {
 					}
 				}
 			}
-			NeoORM instance = GraphDatabaseProducer.instance().wrapNeoORM(
-					svc);
+			NeoORM instance = GraphDatabaseProducer.instance().wrapNeoORM(svc);
 			log.debug("instance created for path " + path);
 			// put the instance in the field map
 			configuredValues.put(f, instance);
@@ -521,10 +529,10 @@ public class NeoORMExtension implements Extension {
 
 							if (this.instances.containsKey(new File(path)
 									.getAbsolutePath())) {
-								service = this.instances
-										.get(new File(path).getAbsolutePath())
-										.getObjectGraph().getRefnode()
-										.getGraphDatabase();
+								service = this.instances.get(
+										new File(path).getAbsolutePath())
+										.getSvc();
+
 							} else {
 								service = GraphDatabaseProducer.instance()
 										.getInstance(path);
@@ -543,5 +551,9 @@ public class NeoORMExtension implements Extension {
 		}
 
 		log.info("Created {} graphdb instances ", instances.keySet().size());
+	}
+
+	class RefNodeProvider {
+
 	}
 }

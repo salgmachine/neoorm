@@ -6,9 +6,12 @@ import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 
 import jo4neo.ObjectGraph;
+import jo4neo.ObjectGraphFactory;
 
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 
 /**
  * Neo4J Tooling Container Class<br/>
@@ -22,18 +25,29 @@ public class NeoORM {
 
 	private ObjectGraph objectGraph;
 
+	private GraphDatabaseService svc;
+
+	GraphDatabaseService getSvc() {
+		return svc;
+	}
+
+	void setSvc(GraphDatabaseService svc) {
+		this.svc = svc;
+	}
+
+	private Node refnode;
+
 	/**
 	 * Executes a Cypher Query String<br/>
 	 * This can be a written String or a constructed Query from CypherDSL
 	 * */
 	public ExecutionResult executeQuery(String str) {
-		return new ExecutionEngine(objectGraph.getRefnode().getGraphDatabase())
-				.execute(str);
+		return new ExecutionEngine(svc).execute(str);
 	}
 
 	@PreDestroy
 	protected void preDestroy() {
-		objectGraph.getRefnode().getGraphDatabase().shutdown();
+		svc.shutdown();
 	}
 
 	public ObjectGraph getObjectGraph() {

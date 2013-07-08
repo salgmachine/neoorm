@@ -11,19 +11,17 @@ import java.lang.annotation.Target;
 import javax.ejb.LocalBean;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
-import javax.enterprise.inject.Stereotype;
 import javax.inject.Qualifier;
+
 
 /**
  * This is the Annotation marking a NeoEntityManager (NeoORM) instance
  * 
- * @author paul
- * @version 0.9
- * 
+ * @author salgmachine
+ * @version 0.5.0
  */
 @Target(value = { METHOD, TYPE, FIELD })
 @Retention(value = RUNTIME)
-@Stereotype
 @LocalBean
 @TransactionAttribute(TransactionAttributeType.REQUIRED)
 @Qualifier
@@ -31,7 +29,7 @@ public @interface NeoEntityManager {
 
 	/**
 	 * This String can point to a neo.properties file or a directory
-	 * */
+	 */
 	String neopath() default "";
 
 }

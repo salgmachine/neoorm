@@ -1,5 +1,11 @@
 package me.bcfh.neoorm;
 
+/**
+ * This enum holds all configuration String constants
+ * 
+ * @author salgmachine
+ * @version 0.5.0
+ */
 public enum NeoKey {
 
 	NeoConfig("neo.config"), NeoDbPath("neo.path");

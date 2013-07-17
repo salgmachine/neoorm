@@ -20,7 +20,6 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 
-
 /**
  * This class delegates calls to the ObjectGraph of jo4neo
  * 
@@ -30,6 +29,14 @@ import org.neo4j.graphdb.index.Index;
 @Stateless
 @LocalBean
 public class NeoORM implements ObjectGraph {
+
+	public NeoORM() {
+
+	}
+
+	public NeoORM(ObjectGraph graph) {
+		this.objectGraph = graph;
+	}
 
 	private Long timestamp = System.currentTimeMillis();
 

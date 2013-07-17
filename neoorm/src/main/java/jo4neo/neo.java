@@ -63,6 +63,8 @@ public @interface neo {
 	boolean recency() default false;
 
 	boolean fulltext() default false;
+	
+	boolean unique() default false;
 }
 
 /**

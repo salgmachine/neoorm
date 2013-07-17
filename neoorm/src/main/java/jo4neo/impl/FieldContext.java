@@ -50,6 +50,10 @@ public class FieldContext {
 	public boolean isFullText() {
 		return helper.isFullText(field);
 	}
+	
+	public boolean isUnique(){
+		return helper.isUnique(field);
+	}
 
 	private boolean arrayPrimitive() {
 		return field.getType().isArray()

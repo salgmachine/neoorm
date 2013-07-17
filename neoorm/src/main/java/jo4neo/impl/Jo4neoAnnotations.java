@@ -11,8 +11,6 @@ import jo4neo.util.RelationFactory;
 
 import org.neo4j.graphdb.RelationshipType;
 
-
-
 class Jo4neoAnnotations implements AnnotationHelper {
 
 	public TraverserProvider getTraverserProvider(Field field) {
@@ -20,18 +18,16 @@ class Jo4neoAnnotations implements AnnotationHelper {
 		try {
 			return c.newInstance();
 		} catch (Exception e) {
-			throw new RuntimeException("Type lacks default constructor:" +  c.getName(), e);
+			throw new RuntimeException("Type lacks default constructor:" + c.getName(), e);
 		}
 	}
 
 	public boolean isIndexed(Field field) {
-		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(
-				neo.class).index());
+		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(neo.class).index());
 	}
 
 	public boolean isFullText(Field field) {
-		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(
-				neo.class).fulltext());
+		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(neo.class).fulltext());
 	}
 
 	public boolean isInverse(Field field) {
@@ -39,7 +35,7 @@ class Jo4neoAnnotations implements AnnotationHelper {
 			neo n = field.getAnnotation(neo.class);
 			return !n.inverse().equals(neo.DEFAULT);
 		}
-		return false;		
+		return false;
 	}
 
 	public RelationshipType toRelationship(RelationFactory f, Field field) {
@@ -53,19 +49,19 @@ class Jo4neoAnnotations implements AnnotationHelper {
 		}
 		return f.relationshipType(n);
 	}
-	
+
 	public boolean isTraverser(Field field) {
 		if (field.isAnnotationPresent(neo.class)) {
 			neo n = field.getAnnotation(neo.class);
 			return !n.traverser().equals(DefaultTraverserProvider.class);
 		}
-		return false;		
+		return false;
 	}
-	
+
 	public boolean isEmbedded(Field field) {
 		return field.isAnnotationPresent(embed.class);
 	}
-	
+
 	public FieldContext[] getFields(Field[] fields, Object o) {
 		ArrayList<FieldContext> values = new ArrayList<FieldContext>();
 		for (Field field : fields) {
@@ -75,5 +71,10 @@ class Jo4neoAnnotations implements AnnotationHelper {
 				values.add(new EmbeddedContext(o, field, this));
 		}
 		return values.toArray(new FieldContext[0]);
+	}
+
+	@Override
+	public boolean isUnique(Field field) {
+		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(neo.class).unique());
 	}
 }

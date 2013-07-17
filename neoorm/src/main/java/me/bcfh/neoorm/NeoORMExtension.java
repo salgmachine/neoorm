@@ -37,10 +37,9 @@ import org.neo4j.kernel.EmbeddedReadOnlyGraphDatabase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
- * This is the CDI Portable Extension which hooks the {@link ObjectGraph} into the CDI Lifecycle by a proxy
- * object ({@link NeoORM})
+ * This is the CDI Portable Extension which hooks the {@link ObjectGraph} into
+ * the CDI Lifecycle by a proxy object ({@link NeoORM})
  * 
  * @author salgmachine
  * @version 0.5.0
@@ -50,7 +49,8 @@ public class NeoORMExtension implements Extension {
 	private static Map<String, Node> refNodes = new HashMap<String, Node>();
 
 	/**
-	 * This is an inner class which produces neo4j graphDatabaseService instances
+	 * This is an inner class which produces neo4j graphDatabaseService
+	 * instances
 	 */
 	private static final class GraphDatabaseProducer {
 
@@ -65,8 +65,7 @@ public class NeoORMExtension implements Extension {
 					return (EmbeddedReadOnlyGraphDatabase) svc;
 				}
 			}
-			GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath)
-				.newGraphDatabase();
+			GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath).newGraphDatabase();
 			graphDBs.put(dbPath, graphDb);
 			refNodes.put(dbPath, graphDb.getReferenceNode());
 			registerShutdownHook(graphDb);
@@ -82,8 +81,7 @@ public class NeoORMExtension implements Extension {
 					return svc;
 				}
 			}
-			GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath)
-				.newGraphDatabase();
+			GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath).newGraphDatabase();
 
 			graphDBs.put(dbPath, graphDb);
 			registerShutdownHook(graphDb);
@@ -98,7 +96,7 @@ public class NeoORMExtension implements Extension {
 				}
 			}
 			GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath)
-				.loadPropertiesFromFile(propertiesPath).newGraphDatabase();
+					.loadPropertiesFromFile(propertiesPath).newGraphDatabase();
 			graphDBs.put(dbPath, graphDb);
 			registerShutdownHook(graphDb);
 			return graphDb;
@@ -208,8 +206,8 @@ public class NeoORMExtension implements Extension {
 			return found;
 		}
 
-		public <X> void wrapInjectionTarget(final InjectionTarget<X> targetPoint,
-				final ProcessInjectionTarget<X> targetPointCtx, final Map<Field, Object> targetValues) {
+		public <X> void wrapInjectionTarget(final InjectionTarget<X> targetPoint, final ProcessInjectionTarget<X> targetPointCtx,
+				final Map<Field, Object> targetValues) {
 			InjectionTarget<X> wrapped = new InjectionTarget<X>() {
 
 				@Override
@@ -272,11 +270,13 @@ public class NeoORMExtension implements Extension {
 		log.debug("Neo ORM Extension loaded");
 	}
 
+	private Boolean isRandom;
+
 	/**
 	 * This is a helper method for processing NeoEntityManager Annotations
 	 */
-	private <X> void processAnnotation(final Map<Field, Object> configuredValues, Annotation a, Field f,
-			final InjectionTarget<X> it, ProcessInjectionTarget<X> pit) {
+	private <X> void processAnnotation(final Map<Field, Object> configuredValues, Annotation a, Field f, final InjectionTarget<X> it,
+			ProcessInjectionTarget<X> pit) {
 		if (a instanceof NeoEntityManager) {
 			String path = ((NeoEntityManager) a).neopath();
 			log.debug("found classmember annotation " + a + " value " + path);
@@ -308,9 +308,18 @@ public class NeoORMExtension implements Extension {
 					// switch to temporary
 					// choose a random directory
 					String tmpPath = System.getProperty("java.io.tmpdir");
-					String salt = "neo4j-instance-" + System.currentTimeMillis();
+					String salt = "neo4j-random";
 					path = tmpPath + salt;
+					File file = new File(path);
+					if (file.exists()) {
+						boolean del = file.delete();
+						if (!del) {
+							file.renameTo(new File(path + "-old"));
+						}
+
+					}
 					svc = GraphDatabaseProducer.instance().getInstance(path);
+
 				} else {
 					if (existsInClassPath) {
 						// first look in classpath
@@ -351,8 +360,7 @@ public class NeoORMExtension implements Extension {
 		}
 	}
 
-	public <X> void processClassMemberAnnotations(@Observes
-	ProcessInjectionTarget<X> pit) {
+	public <X> void processClassMemberAnnotations(@Observes ProcessInjectionTarget<X> pit) {
 
 		// This holds the mapping of the created instance and the target field
 		final Map<Field, Object> configuredValues = new HashMap<Field, Object>();
@@ -372,10 +380,10 @@ public class NeoORMExtension implements Extension {
 	}
 
 	/**
-	 * This method performs cleanup tasks such as shutting down all running graphdb instances
+	 * This method performs cleanup tasks such as shutting down all running
+	 * graphdb instances
 	 */
-	public void shutdownScheduler(@Observes
-	BeforeShutdown event) {
+	public void shutdownScheduler(@Observes BeforeShutdown event) {
 		// cleanup
 		// close all instances in the instances map
 		for (String s : graphDBs.keySet()) {
@@ -391,8 +399,7 @@ public class NeoORMExtension implements Extension {
 	 * <li>file in classpath (put in meta-inf)</li>
 	 * </ul>
 	 */
-	public void initialPhase(@Observes
-	BeforeBeanDiscovery evt) {
+	public void initialPhase(@Observes BeforeBeanDiscovery evt) {
 		// do init stuff
 		// look in environment
 		String env = NeoormUtil.instance().getPathFromEnv();
@@ -410,13 +417,13 @@ public class NeoORMExtension implements Extension {
 
 	/**
 	 * This method creates instances based upon the environment it runs in.<br/>
-	 * Strings can either contain a Directory path (which will be the path the graphdb instance runs in) or it
-	 * can contain a properties file (which must contain the path for the graphdb)<br/>
+	 * Strings can either contain a Directory path (which will be the path the
+	 * graphdb instance runs in) or it can contain a properties file (which must
+	 * contain the path for the graphdb)<br/>
 	 * <br/>
 	 * This method creates grapbdb instances
 	 */
-	public void createInstancesAfterValidation(@Observes
-	AfterDeploymentValidation evt) {
+	public void createInstancesAfterValidation(@Observes AfterDeploymentValidation evt) {
 		List<String> paths = new ArrayList<String>();
 		// make db paths
 		for (String s : this.instances.keySet()) {

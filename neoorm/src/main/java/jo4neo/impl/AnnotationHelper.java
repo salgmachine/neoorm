@@ -17,4 +17,5 @@ interface AnnotationHelper {
 	RelationshipType toRelationship(RelationFactory f, Field field);
 	FieldContext[] getFields(Field[] fields, Object o);
 	public boolean isFullText(Field field);
+	public boolean isUnique(Field field);
 }

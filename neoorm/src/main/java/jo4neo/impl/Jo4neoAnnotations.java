@@ -14,20 +14,29 @@ import org.neo4j.graphdb.RelationshipType;
 class Jo4neoAnnotations implements AnnotationHelper {
 
 	public TraverserProvider getTraverserProvider(Field field) {
-		Class<? extends TraverserProvider> c = field.getAnnotation(neo.class).traverser();
+		Class<? extends TraverserProvider> c = field.getAnnotation(neo.class)
+				.traverser();
 		try {
 			return c.newInstance();
 		} catch (Exception e) {
-			throw new RuntimeException("Type lacks default constructor:" + c.getName(), e);
+			throw new RuntimeException("Type lacks default constructor:"
+					+ c.getName(), e);
 		}
 	}
 
+	public boolean isUnique(Field field) {
+		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(
+				neo.class).unique());
+	}
+
 	public boolean isIndexed(Field field) {
-		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(neo.class).index());
+		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(
+				neo.class).index());
 	}
 
 	public boolean isFullText(Field field) {
-		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(neo.class).fulltext());
+		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(
+				neo.class).fulltext());
 	}
 
 	public boolean isInverse(Field field) {
@@ -73,8 +82,4 @@ class Jo4neoAnnotations implements AnnotationHelper {
 		return values.toArray(new FieldContext[0]);
 	}
 
-	@Override
-	public boolean isUnique(Field field) {
-		return (field.isAnnotationPresent(neo.class) && field.getAnnotation(neo.class).unique());
-	}
 }

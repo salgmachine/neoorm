@@ -8,17 +8,85 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
+import jo4neo.impl.UniqueConstraintViolation;
+import junit.framework.Assert;
+
+import me.bcfh.neoorm.NeoORM;
+
 import org.junit.Test;
 import org.neo4j.graphdb.Transaction;
 
-
 public class TestBasic extends BaseTest {
 
+	@Test
+	public void testUnique() {
+		NeoORM orm = new NeoORM(graph);
+		Hotel h = new Hotel();
+		h.setName("uniquename");
+		orm.persist(h);
+		h = graph.get(Hotel.class).iterator().next();
 
+		Assert.assertEquals("uniquename", h.getName());
+		Assert.assertNull(h.getStreet());
+
+		h.setStreet("update");
+		orm.persist(h);
+
+		h = graph.get(Hotel.class).iterator().next();
+
+		// test if updating a node with a unique field still works..
+		Assert.assertEquals("uniquename", h.getName());
+		Assert.assertEquals("update", h.getStreet());
+
+		// test if persisting a new node with a unique field works
+		boolean caught = false;
+		try {
+			Hotel h2 = new Hotel();
+			h2.setName("uniquename");
+			orm.persist(h2);
+
+		} catch (UniqueConstraintViolation e) {
+			caught = true;
+			e.printStackTrace();
+		}
+
+		Assert.assertTrue(caught);
+
+		// now persist some other node
+		City c = new City();
+		c.setName("city");
+		orm.persist(c);
+		c = orm.get(City.class).iterator().next();
+
+		Assert.assertEquals("city", c.getName());
+
+		// update
+		c.setLon(1d);
+
+		orm.persist(c);
+		c = orm.get(City.class).iterator().next();
+
+		Assert.assertEquals(1d, c.getLon());
+		Assert.assertEquals("city", c.getName());
+
+		caught = false;
+		try {
+			// violation
+			City c2 = new City();
+			c2.setName("city");
+			orm.persist(c2);
+
+		} catch (UniqueConstraintViolation e) {
+			caught = true;
+			e.printStackTrace();
+		}
+
+		Assert.assertTrue(caught);
+	}
 
 	@Test
 	public void testIndex() {
-		
+
 		Transaction t = neo.beginTx();
 		neo.beginTx();
 		try {
@@ -26,12 +94,14 @@ public class TestBasic extends BaseTest {
 			h.setName("Hyatt Boston");
 			graph.persist(h);
 			graph.persist(h);
-            Hotel hotel = new Hotel();
-			Collection<Hotel> hotels = graph.find(hotel).where(hotel.name).is("Hyatt Boston").results();
-			
+			Hotel hotel = new Hotel();
+			Collection<Hotel> hotels = graph.find(hotel).where(hotel.name)
+					.is("Hyatt Boston").results();
+
 			assertEquals(hotels.size(), 1);
 			graph.delete(h);
-			hotels = graph.find(hotel).where(hotel.name).is("Hyatt Boston").results();
+			hotels = graph.find(hotel).where(hotel.name).is("Hyatt Boston")
+					.results();
 			assertEquals(hotels.size(), 0);
 			t.success();
 		} finally {
@@ -61,13 +131,12 @@ public class TestBasic extends BaseTest {
 			graph.persist(s1);
 
 			Student s1ref = graph.get(Student.class, s1.neo.id());
-			
+
 			assertEquals(3, graph.count(s1ref.courses));
 			assertEquals(s1ref.getCourses().size(), 3);
 			t.success();
 		} finally {
 			t.finish();
-			
 
 		}
 	}
@@ -94,7 +163,7 @@ public class TestBasic extends BaseTest {
 			Student s1ref = graph.get(Student.class, s1.neo.id());
 			assertEquals(s1ref.getCourses().size(), 3);
 		} finally {
-			
+
 		}
 
 	}
@@ -131,7 +200,7 @@ public class TestBasic extends BaseTest {
 				assertEquals("modified", c.getName());
 			}
 		} finally {
-			
+
 		}
 
 	}
@@ -147,7 +216,7 @@ public class TestBasic extends BaseTest {
 			t.success();
 		} finally {
 			t.finish();
-			
+
 		}
 	}
 
@@ -185,7 +254,7 @@ public class TestBasic extends BaseTest {
 			assertEquals(2, s1.getCourses().size());
 			assertEquals(s1.getName(), "student");
 		} finally {
-			
+
 		}
 	}
 
@@ -209,7 +278,7 @@ public class TestBasic extends BaseTest {
 			t.success();
 		} finally {
 			t.finish();
-			
+
 		}
 
 		t = graph.beginTx();
@@ -222,7 +291,7 @@ public class TestBasic extends BaseTest {
 			t.success();
 		} finally {
 			t.finish();
-			
+
 		}
 
 		t = graph.beginTx();
@@ -232,7 +301,7 @@ public class TestBasic extends BaseTest {
 			t.success();
 		} finally {
 			t.finish();
-			
+
 		}
 	}
 
@@ -268,37 +337,38 @@ public class TestBasic extends BaseTest {
 			t.success();
 		} finally {
 			t.finish();
-			
+
 		}
 	}
 
 	@Test
 	public void notransaction() {
 
-			Address a = new Address();
-			a.state = "TX";
-			a.city = "Keller";
-			a.street = "123 Oak";
+		Address a = new Address();
+		a.state = "TX";
+		a.city = "Keller";
+		a.street = "123 Oak";
 
-			Person friend = new Person();
-			friend.setFirstName("friend");
-			friend.setAddress(a);
+		Person friend = new Person();
+		friend.setFirstName("friend");
+		friend.setAddress(a);
 
-			Person p1 = new Person();
-			p1.setAge(32);
-			p1.setFirstName("taylor");
-			p1.setLastName("cowan");
-			p1.setAddress(a);
-			p1.setFriend(friend);
-			friend.setFriend(p1);
-			graph.persist(p1);
+		Person p1 = new Person();
+		p1.setAge(32);
+		p1.setFirstName("taylor");
+		p1.setLastName("cowan");
+		p1.setAddress(a);
+		p1.setFriend(friend);
+		friend.setFriend(p1);
+		graph.persist(p1);
 
-			Person p2 = graph.get(Person.class, p1.neo.id());
-			assertEquals(32, p2.getAge());
-			assertEquals(p1.getAge(), p2.getAge());
-			assertNotNull(p2.getFriend());
-			assertEquals(p2.getFriend().getFirstName(), "friend");
-			assertEquals(p2.getFriend().getFirstName(), p1.getFriend().getFirstName());
+		Person p2 = graph.get(Person.class, p1.neo.id());
+		assertEquals(32, p2.getAge());
+		assertEquals(p1.getAge(), p2.getAge());
+		assertNotNull(p2.getFriend());
+		assertEquals(p2.getFriend().getFirstName(), "friend");
+		assertEquals(p2.getFriend().getFirstName(), p1.getFriend()
+				.getFirstName());
 	}
 
 	@Test
@@ -317,7 +387,7 @@ public class TestBasic extends BaseTest {
 			graph.persist(h);
 
 		} finally {
-			
+
 		}
 	}
 

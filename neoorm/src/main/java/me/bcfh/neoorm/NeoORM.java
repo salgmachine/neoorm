@@ -1,9 +1,9 @@
 package me.bcfh.neoorm;
 
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -11,6 +11,7 @@ import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 
 import jo4neo.ObjectGraph;
+import jo4neo.neo;
 import jo4neo.fluent.Where;
 
 import org.neo4j.cypher.javacompat.ExecutionEngine;
@@ -18,7 +19,6 @@ import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.index.Index;
 
 /**
  * This class delegates calls to the ObjectGraph of jo4neo
@@ -81,7 +81,8 @@ public class NeoORM implements ObjectGraph {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((timestamp == null) ? 0 : timestamp.hashCode());
+		result = prime * result
+				+ ((timestamp == null) ? 0 : timestamp.hashCode());
 		return result;
 	}
 
@@ -109,6 +110,43 @@ public class NeoORM implements ObjectGraph {
 
 	@Override
 	public <A> void persist(A... o) {
+		// for (Object obj : o) {
+		// Collection<? extends Object> ob = get(obj.getClass());
+		// for (Object p : ob) {
+		// for (Field f : p.getClass().getDeclaredFields()) {
+		// if (f.isAnnotationPresent(neo.class)) {
+		// neo n = (neo) f.getAnnotation(neo.class);
+		// if (n != null)
+		// if (n.index() && n.unique()) {
+		// try {
+		// f.setAccessible(true);
+		// Object val1 = f.get(obj);
+		//
+		// Object val2 = obj.getClass()
+		// .getField(f.getName()).get(obj);
+		//
+		// if(){
+		//
+		// }
+		//
+		// System.out.println(f.get(obj));
+		// Collection<Object> col = find(obj)
+		// .where(f.get(obj)).is(f.get(obj))
+		// .results();
+		// System.out.println("found elements "
+		// + col.size());
+		// f.setAccessible(false);
+		// } catch (Exception e) {
+		// e.printStackTrace();
+		// }
+		// }
+		// }
+		// }
+		//
+		// }
+		//
+		// }
+
 		this.objectGraph.persist(o);
 	}
 
@@ -188,19 +226,20 @@ public class NeoORM implements ObjectGraph {
 	}
 
 	@Override
-	public <T> Collection<T> fullTextQuery(Class<T> t, String indexname, Object value) {
+	public <T> Collection<T> fullTextQuery(Class<T> t, String indexname,
+			Object value) {
 		return this.objectGraph.fullTextQuery(t, indexname, value);
 	}
 
-	@Override
-	public Node getRefnode() {
-		return this.objectGraph.getRefnode();
-	}
-
-	@Override
-	public Index<Node> getIndexService(boolean fulltext) {
-		return this.objectGraph.getIndexService(fulltext);
-	}
+	// @Override
+	// public Node getRefnode() {
+	// return this.objectGraph.getRefnode();
+	// }
+	//
+	// @Override
+	// public Index<Node> getIndexService(boolean fulltext) {
+	// return this.objectGraph.getIndexService(fulltext);
+	// }
 
 	public <T> boolean exists(Class<T> c) {
 		return !this.get(c).isEmpty();

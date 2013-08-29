@@ -3,20 +3,22 @@ package jo4neo.impl;
 import static jo4neo.impl.TypeWrapperFactory.$;
 import static org.neo4j.graphdb.Direction.OUTGOING;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
+import jo4neo.Nodeid;
 import jo4neo.util.Lazy;
 
 import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
-import org.neo4j.graphdb.index.UniqueFactory;
 
 class PersistOperation<T> {
 
@@ -52,6 +54,9 @@ class PersistOperation<T> {
 	}
 
 	private void save(Node node, FieldContext field) {
+
+		if (field.isUnique())
+			saveAndIndexUnique(node, field);
 		if (field.isInverse() || field.isTraverser())
 			initializeIfNull(field);
 		else if (field.isSimpleType())
@@ -62,11 +67,6 @@ class PersistOperation<T> {
 			relate(node, field);
 		else if (field.isPlural())
 			relations(node, field);
-		else if (field.isUnique())
-			saveUnique(node, field);
-	}
-
-	private void saveUnique(Node node, FieldContext field) {
 
 	}
 
@@ -75,8 +75,84 @@ class PersistOperation<T> {
 			field.setProperty(ListFactory.get(field, new LoadOperation<T>(neo)));
 	}
 
+	private void saveAndIndexUnique(Node node, FieldContext field)
+			throws UniqueConstraintViolation {
+		field.applyTo(node);
+
+		Object o = field.subject;
+		for (java.lang.reflect.Field f : o.getClass().getDeclaredFields()) {
+			Object fieldval;
+			try {
+				f.setAccessible(true);
+				fieldval = f.get(o);
+				if (fieldval instanceof Nodeid) {
+					Nodeid Id = (Nodeid) fieldval;
+					System.out.println("node id " + Id.id());
+
+				}
+			} catch (IllegalArgumentException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		Iterator<Node> n = index().query(field.getIndexName(), field.value())
+				.iterator();
+
+		List<Node> nodes = new ArrayList<Node>();
+
+		List<Long> idlist = new ArrayList<Long>();
+
+		while (n.hasNext()) {
+			Node node2 = n.next();
+			nodes.add(node2);
+			idlist.add(new Long(node2.getId()));
+		}
+
+		boolean found = false;
+		for (Node node2 : nodes) {
+			// System.out.println("iterator node id " + node2.getId());
+			for (String s : node2.getPropertyKeys()) {
+				System.out.println(" { " + s + " : " + node2.getProperty(s)
+						+ " }");
+				if (node2.getProperty(s).equals(field.value())) {
+					found = true;
+				}
+			}
+
+			// System.err.println("found already " + found);
+		}
+		if (!found) {
+			// handle persist
+			index().remove(node, field.getIndexName(), field.value());
+			index().add(node, field.getIndexName(), field.value());
+			System.err.println("persisted");
+		} else {
+			Node node2 = index().getGraphDatabase().getNodeById(node.getId());
+			// System.err.println("found node " + node2.getId());
+			boolean found2 = idlist.contains(node2.getId());
+			// handle update
+			if (found2) {
+				System.err.println("updated");
+				index().remove(node, field.getIndexName(), field.value());
+				index().add(node, field.getIndexName(), field.value());
+			} else {
+				System.err.println("denied (violation) ");
+				UniqueConstraintViolation v = new UniqueConstraintViolation();
+				v.setFieldname(field.getFieldname());
+				v.setValue(field.value());
+				throw v;
+			}
+
+		}
+
+		// System.out.println("indexsize " + indexsize);
+	}
+
 	private void saveAndIndex(Node node, FieldContext field) {
-		final FieldContext f = field;
 		field.applyTo(node);
 		if (field.value() != null && field.isIndexed()) {
 			index().remove(node, field.getIndexName(), field.value());
@@ -94,7 +170,8 @@ class PersistOperation<T> {
 
 	private void relations(Node node, FieldContext field) {
 		Collection<?> values = field.values();
-		RelationshipType reltype = field.toRelationship(neo.getRelationFactory());
+		RelationshipType reltype = field.toRelationship(neo
+				.getRelationFactory());
 
 		// initialize null collections to a lazy loader
 		if (values == null) {
@@ -137,7 +214,8 @@ class PersistOperation<T> {
 	}
 
 	private void relate(Node node, FieldContext field) {
-		RelationshipType reltype = field.toRelationship(neo.getRelationFactory());
+		RelationshipType reltype = field.toRelationship(neo
+				.getRelationFactory());
 		deleteAll(node, reltype);
 		if (field.value() == null)
 			return;
@@ -150,7 +228,8 @@ class PersistOperation<T> {
 	}
 
 	private void deleteAll(Node node, RelationshipType reltype) {
-		for (Relationship r : node.getRelationships(reltype, Direction.OUTGOING))
+		for (Relationship r : node
+				.getRelationships(reltype, Direction.OUTGOING))
 			r.delete();
 	}
 

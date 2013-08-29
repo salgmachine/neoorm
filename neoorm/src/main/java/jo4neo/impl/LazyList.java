@@ -135,6 +135,12 @@ public class LazyList implements Lazy {
 	public boolean modified() {
 		return modified;
 	}
+
+	@Override
+	public String toString() {
+		return "LazyList [data=" + data + ", modified=" + modified + "]";
+	}
+	
 	
 
 }

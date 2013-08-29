@@ -14,8 +14,6 @@ import jo4neo.util.PrimitiveWrapper;
 import jo4neo.util.RelationFactory;
 import jo4neo.util.Utils;
 
-
-
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -27,7 +25,6 @@ public class FieldContext {
 	protected Field field;
 	AnnotationHelper helper;
 	public Object subject;
-	
 
 	public FieldContext(Object o, Field field, AnnotationHelper helper) {
 		this.field = field;
@@ -46,13 +43,13 @@ public class FieldContext {
 	public boolean isIndexed() {
 		return helper.isIndexed(field);
 	}
-	
+
+	public boolean isUnique() {
+		return helper.isUnique(field);
+	}
+
 	public boolean isFullText() {
 		return helper.isFullText(field);
-	}
-	
-	public boolean isUnique(){
-		return helper.isUnique(field);
 	}
 
 	private boolean arrayPrimitive() {
@@ -60,11 +57,11 @@ public class FieldContext {
 				&& PrimitiveWrapper.isPrimitive(field.getType()
 						.getComponentType());
 	}
-	
-	public Iterable<Relationship> relationships(Node n, RelationFactory f, Direction direction) {
+
+	public Iterable<Relationship> relationships(Node n, RelationFactory f,
+			Direction direction) {
 		return n.getRelationships(toRelationship(f), direction);
 	}
-
 
 	public Object value() {
 		Object result = null;
@@ -162,7 +159,7 @@ public class FieldContext {
 	public boolean isPluralPrimitive() {
 		return isPlural() && isPrimitive(type2());
 	}
-	
+
 	public boolean isPluralComplex() {
 		return isPlural() && !isPrimitive(type2());
 	}
@@ -188,31 +185,31 @@ public class FieldContext {
 	public String getFieldname() {
 		return field.getName();
 	}
-	
+
 	public TraverserProvider getTraverserProvider() {
 		return helper.getTraverserProvider(field);
 	}
 
 	public boolean isTraverser() {
-		return helper.isTraverser(field);	
+		return helper.isTraverser(field);
 	}
 
 }
 
 /**
- * jo4neo is a java object binding library for neo4j
- * Copyright (C) 2009  Taylor Cowan
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
+ * jo4neo is a java object binding library for neo4j Copyright (C) 2009 Taylor
+ * Cowan
+ * 
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ * 
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */

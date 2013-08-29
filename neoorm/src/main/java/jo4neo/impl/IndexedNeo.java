@@ -34,6 +34,8 @@ class IndexedNeo implements GraphDatabaseService {
 
 	private Map<Class<?>, TimelineIndex<Node>> timelines;
 
+	private Map<Class<?>, Index<Node>> uniques;
+
 	public IndexedNeo(GraphDatabaseService neo) {
 		this.neo = neo;
 		IndexManager im = neo.index();

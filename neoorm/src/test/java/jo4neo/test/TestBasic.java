@@ -23,14 +23,22 @@ public class TestBasic extends BaseTest {
 		NeoORM orm = new NeoORM(graph);
 		Hotel h = new Hotel();
 		h.setName("uniquename");
+
+		long start = System.currentTimeMillis();
 		orm.persist(h);
+		System.out.println("persist 1 took "
+				+ (System.currentTimeMillis() - start));
+
 		h = graph.get(Hotel.class).iterator().next();
 
 		Assert.assertEquals("uniquename", h.getName());
 		Assert.assertNull(h.getStreet());
 
 		h.setStreet("update");
+		start = System.currentTimeMillis();
 		orm.persist(h);
+		System.out.println("persist 2 took "
+				+ (System.currentTimeMillis() - start));
 
 		h = graph.get(Hotel.class).iterator().next();
 
@@ -43,11 +51,13 @@ public class TestBasic extends BaseTest {
 		try {
 			Hotel h2 = new Hotel();
 			h2.setName("uniquename");
+			start = System.currentTimeMillis();
 			orm.persist(h2);
-
+			System.out.println("violation persist took "
+					+ (System.currentTimeMillis() - start));
 		} catch (UniqueConstraintViolation e) {
 			caught = true;
-			e.printStackTrace();
+			// e.printStackTrace();
 		}
 
 		Assert.assertTrue(caught);
@@ -55,15 +65,22 @@ public class TestBasic extends BaseTest {
 		// now persist some other node
 		City c = new City();
 		c.setName("city");
+		start = System.currentTimeMillis();
 		orm.persist(c);
+		System.out.println("persist c1 took "
+				+ (System.currentTimeMillis() - start));
+
 		c = orm.get(City.class).iterator().next();
 
 		Assert.assertEquals("city", c.getName());
 
 		// update
 		c.setLon(1d);
-
+		start = System.currentTimeMillis();
 		orm.persist(c);
+		System.out.println("persist c2 took "
+				+ (System.currentTimeMillis() - start));
+
 		c = orm.get(City.class).iterator().next();
 
 		Assert.assertEquals(1d, c.getLon());
@@ -74,11 +91,13 @@ public class TestBasic extends BaseTest {
 			// violation
 			City c2 = new City();
 			c2.setName("city");
+			start = System.currentTimeMillis();
 			orm.persist(c2);
-
+			System.out.println("persist violation c3 took "
+					+ (System.currentTimeMillis() - start));
 		} catch (UniqueConstraintViolation e) {
 			caught = true;
-			e.printStackTrace();
+			// e.printStackTrace();
 		}
 
 		Assert.assertTrue(caught);

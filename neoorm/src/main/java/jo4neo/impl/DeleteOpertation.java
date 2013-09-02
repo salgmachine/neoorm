@@ -6,12 +6,10 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
-
-
 class DeleteOpertation {
 
 	IndexedNeo ineo;
-	
+
 	public DeleteOpertation(IndexedNeo ineo) {
 		this.ineo = ineo;
 	}
@@ -31,7 +29,6 @@ class DeleteOpertation {
 						indexRemove(delNode, field);
 					else if (field.isFullText())
 						ftIndexRemove(delNode, field);
-						
 
 				for (Relationship r : delNode.getRelationships())
 					r.delete();
@@ -42,12 +39,22 @@ class DeleteOpertation {
 			t.finish();
 		}
 	}
-	
+
 	private void indexRemove(Node delNode, FieldContext field) {
-		ineo.getIndexService().remove(delNode, field.getIndexName(),
-				field.value());
+		System.out.println("node " + delNode);
+		System.out.println("field " + field);
+		System.out.println("field.getIndexName() " + field.getIndexName());
+		System.out.println("field.value() " + field.value());
+		System.out.println("ineo " + ineo);
+		System.out.println("ineo.getIndexService() " + ineo.getIndexService());
+		System.out.println("ineo.getIndexService() " + ineo.getIndexService());
+
+		if (field.value() != null) {
+			ineo.getIndexService().remove(delNode, field.getIndexName(),
+					field.value());
+		}
 	}
-	
+
 	private void ftIndexRemove(Node delNode, FieldContext field) {
 		ineo.getFullTextIndexService().remove(delNode, field.getIndexName(),
 				field.value());

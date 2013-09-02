@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import jo4neo.Nodeid;
+import jo4neo.UniqueConstraintViolation;
 import jo4neo.util.Lazy;
 
 import org.neo4j.graphdb.Direction;
@@ -75,8 +76,7 @@ class PersistOperation<T> {
 			field.setProperty(ListFactory.get(field, new LoadOperation<T>(neo)));
 	}
 
-	private void saveAndIndexUnique(Node node, FieldContext field)
-			throws UniqueConstraintViolation {
+	private void saveAndIndexUnique(Node node, FieldContext field) {
 		field.applyTo(node);
 
 		Object o = field.subject;
@@ -141,9 +141,12 @@ class PersistOperation<T> {
 				index().add(node, field.getIndexName(), field.value());
 			} else {
 				System.err.println("denied (violation) ");
+
 				UniqueConstraintViolation v = new UniqueConstraintViolation();
-				v.setFieldname(field.getFieldname());
-				v.setValue(field.value());
+
+				v.setContext(field);
+				v.setNode(node);
+
 				throw v;
 			}
 

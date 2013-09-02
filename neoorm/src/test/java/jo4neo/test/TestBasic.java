@@ -8,9 +8,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-import jo4neo.impl.UniqueConstraintViolation;
+import jo4neo.UniqueConstraintViolation;
 import junit.framework.Assert;
-
 import me.bcfh.neoorm.NeoORM;
 
 import org.junit.Test;

@@ -245,6 +245,17 @@ public class NeoORM implements ObjectGraph {
 		return !this.get(c).isEmpty();
 	}
 
+	public <T> T getOrCreate(Class<T> c) {
+		Collection<T> list = this.get(c);
+
+		
+		
+		if (list.size() == 0) {
+			
+		}
+		return null;
+	}
+
 	public <T> T getSingle(Class<T> c) {
 		Collection<T> list = this.get(c);
 

@@ -10,6 +10,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.persistence.PersistenceException;
+
 import jo4neo.Nodeid;
 import jo4neo.UniqueConstraintViolation;
 import jo4neo.util.Lazy;
@@ -98,6 +100,17 @@ class PersistOperation<T> {
 				e.printStackTrace();
 			}
 		}
+
+		// if (index() == null)
+		// throw new RuntimeException("index() was null");
+		// if (field == null)
+		// throw new RuntimeException("field was null");
+		// if (field.getIndexName() == null)
+		// throw new RuntimeException("field.getIndexName() was null");
+
+		if (field.value() == null)
+			throw new PersistenceException(
+					"Tried to insert a null Value into a unique Field [" + field.getFieldname() + "] on node " + field.subject);
 
 		Iterator<Node> n = index().query(field.getIndexName(), field.value())
 				.iterator();

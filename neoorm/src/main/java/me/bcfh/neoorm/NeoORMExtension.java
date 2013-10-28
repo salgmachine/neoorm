@@ -292,7 +292,7 @@ public class NeoORMExtension implements Extension {
 			final InjectionTarget<X> it, ProcessInjectionTarget<X> pit) {
 		if (a instanceof NeoEntityManager) {
 			String path = ((NeoEntityManager) a).neopath();
-			log.info("found classmember annotation " + a + " value " + path);
+			log.debug("found classmember annotation " + a + " value " + path);
 
 			GraphDatabaseService svc = null;
 			// found annotation has string value
@@ -363,7 +363,7 @@ public class NeoORMExtension implements Extension {
 				}
 			}
 			NeoORM instance = GraphDatabaseProducer.instance().wrapNeoORM(svc);
-			log.info("instance created for path " + path);
+			log.debug("instance created for path " + path);
 			// put the instance in the field map
 			configuredValues.put(f, instance);
 			// call postconstruct
@@ -385,7 +385,7 @@ public class NeoORMExtension implements Extension {
 		final InjectionTarget<X> it = pit.getInjectionTarget();
 		AnnotatedType<X> at = pit.getAnnotatedType();
 		Field[] fields = at.getJavaClass().getDeclaredFields();
-		log.info("looking at class " + at.getJavaClass());
+		log.debug("looking at class " + at.getJavaClass());
 		if (NeoormUtil.instance().isNeoOrmAnnotationInClass(at.getJavaClass())) {
 			for (Field f : fields) {
 				// look at field annotation classmember level
@@ -461,7 +461,7 @@ public class NeoORMExtension implements Extension {
 										new FileInputStream(f)));
 								String path = prop.getProperty(NeoKey.NeoDbPath
 										.getValue());
-								log.info("read path from properties file "
+								log.debug("read path from properties file "
 										+ path);
 							} catch (FileNotFoundException e) {
 								log.error("File " + f.getAbsolutePath()

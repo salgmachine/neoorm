@@ -4,10 +4,9 @@ import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.TreeSet;
 
 import org.neo4j.graphdb.Direction;
-
-
 
 import jo4neo.util.Lazy;
 
@@ -19,16 +18,16 @@ public class LazyList implements Lazy {
 
 	private Collection<Object> data;
 	private boolean modified = false;
-	
+
 	public LazyList(FieldContext f, LoadCollectionOps loader) {
 		field = f;
 		this.loader = new SoftReference<LoadCollectionOps>(loader);
 	}
-	
+
 	public long getCount() {
 		return graph().count(field, Direction.OUTGOING);
 	}
-	
+
 	private LoadCollectionOps graph() {
 		LoadCollectionOps graph = loader.get();
 		if (graph == null || graph.isClosed())
@@ -41,13 +40,13 @@ public class LazyList implements Lazy {
 			data = graph().load(field);
 		return data;
 	}
-	
+
 	protected Collection<Object> newdata() {
-		if ( newdata == null)
+		if (newdata == null)
 			newdata = new ArrayList<Object>();
 		return newdata;
 	}
-	
+
 	protected Collection<Object> consumeUpdates() {
 		Collection<Object> updates = newdata();
 		newdata = null;
@@ -67,7 +66,6 @@ public class LazyList implements Lazy {
 		modified = true;
 		return data().addAll(c);
 	}
-
 
 	public void clear() {
 		modified = true;
@@ -100,7 +98,25 @@ public class LazyList implements Lazy {
 
 	public boolean remove(Object o) {
 		modified = true;
-		if (data().remove(o))
+
+		Collection<Object> obj = data();
+		boolean removed = obj.remove(o);
+
+		TreeSet<Object> tree = (TreeSet<Object>) obj;
+		Iterator<Object> iterator = tree.iterator();
+
+		while (iterator.hasNext()) {
+			Object next = iterator.next();
+			if (o.equals(next)) {
+				iterator.remove();
+				// DANGER POTENTIAL DATA LOSS
+				removed = true;
+				
+				break;
+			}
+		}
+
+		if (removed)
 			graph().removeRelationship(field, o);
 		return data().remove(o);
 	}
@@ -114,7 +130,7 @@ public class LazyList implements Lazy {
 		modified = true;
 		return data().retainAll(c);
 	}
-	
+
 	public int size() {
 		return data().size();
 	}
@@ -140,25 +156,23 @@ public class LazyList implements Lazy {
 	public String toString() {
 		return "LazyList [data=" + data + ", modified=" + modified + "]";
 	}
-	
-	
 
 }
 
 /**
- * jo4neo is a java object binding library for neo4j
- * Copyright (C) 2009  Taylor Cowan
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
+ * jo4neo is a java object binding library for neo4j Copyright (C) 2009 Taylor
+ * Cowan
+ * 
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ * 
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */

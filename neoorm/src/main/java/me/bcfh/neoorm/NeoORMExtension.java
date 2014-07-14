@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -13,17 +12,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
+import java.util.logging.Logger;
 
-import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Observes;
-import javax.enterprise.inject.InjectionException;
 import javax.enterprise.inject.spi.AfterDeploymentValidation;
 import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.BeforeBeanDiscovery;
 import javax.enterprise.inject.spi.BeforeShutdown;
 import javax.enterprise.inject.spi.Extension;
-import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.InjectionTarget;
 import javax.enterprise.inject.spi.ProcessInjectionTarget;
 
@@ -34,8 +30,6 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.kernel.EmbeddedReadOnlyGraphDatabase;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This is the CDI Portable Extension which hooks the {@link ObjectGraph} into
@@ -46,229 +40,10 @@ import org.slf4j.LoggerFactory;
  */
 public class NeoORMExtension implements Extension {
 
-	private static Map<String, Node> refNodes = new HashMap<String, Node>();
-
-	/**
-	 * This is an inner class which produces neo4j graphDatabaseService
-	 * instances
-	 */
-	private static final class GraphDatabaseProducer {
-
-		private GraphDatabaseService getExisting(String key) {
-			return graphDBs.get(key);
-		}
-
-		public EmbeddedReadOnlyGraphDatabase getReadOnlyInstance(String dbPath) {
-			if (graphDBs.containsKey(dbPath)) {
-				GraphDatabaseService svc = graphDBs.get(dbPath);
-				if (svc != null) {
-					return (EmbeddedReadOnlyGraphDatabase) svc;
-				}
-			}
-			GraphDatabaseService graphDb = new GraphDatabaseFactory()
-					.newEmbeddedDatabaseBuilder(dbPath).newGraphDatabase();
-			graphDBs.put(dbPath, graphDb);
-			refNodes.put(dbPath, graphDb.getReferenceNode());
-			registerShutdownHook(graphDb);
-			EmbeddedReadOnlyGraphDatabase ro = (EmbeddedReadOnlyGraphDatabase) graphDb;
-			return ro;
-		}
-
-		public GraphDatabaseService getInstance(String dbPath) {
-
-			if (graphDBs.containsKey(dbPath)) {
-				GraphDatabaseService svc = graphDBs.get(dbPath);
-				if (svc != null) {
-					return svc;
-				}
-			}
-			GraphDatabaseService graphDb = new GraphDatabaseFactory()
-					.newEmbeddedDatabaseBuilder(dbPath).newGraphDatabase();
-
-			graphDBs.put(dbPath, graphDb);
-			registerShutdownHook(graphDb);
-			return graphDb;
-		}
-
-		public GraphDatabaseService getConfiguredInstance(String dbPath,
-				String propertiesPath) {
-			if (graphDBs.containsKey(dbPath)) {
-				GraphDatabaseService svc = graphDBs.get(dbPath);
-				if (svc != null) {
-					return svc;
-				}
-			}
-			GraphDatabaseService graphDb = new GraphDatabaseFactory()
-					.newEmbeddedDatabaseBuilder(dbPath)
-					.loadPropertiesFromFile(propertiesPath).newGraphDatabase();
-			graphDBs.put(dbPath, graphDb);
-			registerShutdownHook(graphDb);
-			return graphDb;
-		}
-
-		public ObjectGraph wrapObjectGraph(GraphDatabaseService svc) {
-			ObjectGraph og = ObjectGraphFactory.instance().get(svc);
-			return og;
-		}
-
-		public NeoORM wrapNeoORM(GraphDatabaseService svc) {
-			NeoORM orm = new NeoORM();
-			orm.setSvc(svc);
-			ObjectGraph og = ObjectGraphFactory.instance().get(svc);
-			orm.setObjectGraph(og);
-			return orm;
-		}
-
-		public static GraphDatabaseProducer instance() {
-			return producer;
-		}
-
-		private static final GraphDatabaseProducer producer = new GraphDatabaseProducer();
-
-		private void registerShutdownHook(final GraphDatabaseService graphDb) {
-			// Registers a shutdown hook for the Neo4j instance so that it
-			// shuts down nicely when the VM exits (even if you "Ctrl-C" the
-			// running example before it's completed)
-			Runtime.getRuntime().addShutdownHook(new Thread() {
-
-				@Override
-				public void run() {
-					graphDb.shutdown();
-				}
-			});
-		}
-	}
-
 	/**
 	 * This is an inner class containing repeatable tasks
 	 */
-	private static final class NeoormUtil {
-
-		private static final Logger log = LoggerFactory
-				.getLogger(NeoormUtil.class);
-
-		private static final NeoormUtil util = new NeoormUtil();
-
-		public String getPathFromEnv() {
-			String path = System.getProperties().getProperty("neo.path");
-			if (path != null) {
-				if (path.endsWith("neo.properties")) {
-					Properties prop = new Properties();
-					try {
-						prop.load(new FileInputStream(new File(path)));
-						String value = prop.getProperty(NeoKey.NeoDbPath
-								.getValue());
-						return value;
-					} catch (FileNotFoundException e) {
-						log.error("File " + path + " could not be found");
-					} catch (IOException e) {
-						log.error("File " + path + " could not be read");
-					}
-				}
-			}
-			return System.getProperties().getProperty("neo.path");
-		}
-
-		public Properties loadFromClassPath() {
-			Properties prop = new Properties();
-			try {
-				InputStream is = getInputStream();
-				if (is != null) {
-					prop.load(is);
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-			return prop;
-		}
-
-		private InputStream getInputStream() {
-			InputStream is = getClass().getClassLoader().getResourceAsStream(
-					"META-INF/neo.properties");
-			return is;
-		}
-
-		public static NeoormUtil instance() {
-			return util;
-		}
-
-		public boolean isNeoOrmAnnotationInClass(Class c) {
-			boolean found = false;
-			Field[] fields = c.getDeclaredFields();
-			for (Field f : fields) {
-				// look at field annotation
-				Annotation[] annotations = f.getAnnotations();
-				if (annotations != null) {
-					for (Annotation a : annotations) {
-						if (a instanceof NeoEntityManager) {
-							found = true;
-							break;
-						}
-					}
-				}
-			}
-
-			return found;
-		}
-
-		public <X> void wrapInjectionTarget(
-				final InjectionTarget<X> targetPoint,
-				final ProcessInjectionTarget<X> targetPointCtx,
-				final Map<Field, Object> targetValues) {
-			InjectionTarget<X> wrapped = new InjectionTarget<X>() {
-
-				@Override
-				public void inject(X instance, CreationalContext<X> ctx) {
-					targetPoint.inject(instance, ctx);
-
-					for (Map.Entry<Field, Object> configuredValue : targetValues
-							.entrySet()) {
-						try {
-							configuredValue.getKey().setAccessible(true);
-							configuredValue.getKey().set(instance,
-									configuredValue.getValue());
-							configuredValue.getKey().setAccessible(false);
-						} catch (Exception e) {
-							throw new InjectionException(e);
-						}
-					}
-				}
-
-				@Override
-				public void postConstruct(X instance) {
-					targetPoint.postConstruct(instance);
-				}
-
-				@Override
-				public void preDestroy(X instance) {
-					targetPoint.dispose(instance);
-				}
-
-				@Override
-				public void dispose(X instance) {
-					targetPoint.dispose(instance);
-				}
-
-				@Override
-				public Set<InjectionPoint> getInjectionPoints() {
-					return targetPoint.getInjectionPoints();
-				}
-
-				@Override
-				public X produce(CreationalContext<X> ctx) {
-					return targetPoint.produce(ctx);
-				}
-
-			};
-
-			targetPointCtx.setInjectionTarget(wrapped);
-		}
-	}
-
-	private static final Logger log = LoggerFactory
-			.getLogger(NeoORMExtension.class);
+	private static final Logger log = Logger.getLogger("Neo ORM");
 
 	private static Map<String, GraphDatabaseService> graphDBs = new HashMap<String, GraphDatabaseService>();
 
@@ -292,7 +67,7 @@ public class NeoORMExtension implements Extension {
 			final InjectionTarget<X> it, ProcessInjectionTarget<X> pit) {
 		if (a instanceof NeoEntityManager) {
 			String path = ((NeoEntityManager) a).neopath();
-			log.debug("found classmember annotation " + a + " value " + path);
+			log.fine("found classmember annotation " + a + " value " + path);
 
 			GraphDatabaseService svc = null;
 			// found annotation has string value
@@ -306,7 +81,9 @@ public class NeoORMExtension implements Extension {
 				} else {
 					// new instance
 					svc = GraphDatabaseProducer.instance().getInstance(path);
-					refNodes.put(path, svc.getReferenceNode());
+
+					GraphDatabaseProducer.instance().getRefNodes()
+							.put(path, svc.getReferenceNode());
 				}
 			} else {
 				// found annotation is missing string value,
@@ -344,7 +121,8 @@ public class NeoORMExtension implements Extension {
 							// new instance
 							svc = GraphDatabaseProducer.instance().getInstance(
 									path);
-							refNodes.put(path, svc.getReferenceNode());
+							GraphDatabaseProducer.instance().getRefNodes()
+									.put(path, svc.getReferenceNode());
 						}
 						// continue, as from here on we ignore
 						// any jvm args
@@ -363,7 +141,7 @@ public class NeoORMExtension implements Extension {
 				}
 			}
 			NeoORM instance = GraphDatabaseProducer.instance().wrapNeoORM(svc);
-			log.debug("instance created for path " + path);
+			log.fine("instance created for path " + path);
 			// put the instance in the field map
 			configuredValues.put(f, instance);
 			// call postconstruct
@@ -371,8 +149,7 @@ public class NeoORMExtension implements Extension {
 			// store instance for later access
 			instances.put(path, instance);
 			// now wrap it up
-			NeoormUtil.instance()
-					.wrapInjectionTarget(it, pit, configuredValues);
+			NeoUtil.instance().wrapInjectionTarget(it, pit, configuredValues);
 		}
 	}
 
@@ -385,8 +162,8 @@ public class NeoORMExtension implements Extension {
 		final InjectionTarget<X> it = pit.getInjectionTarget();
 		AnnotatedType<X> at = pit.getAnnotatedType();
 		Field[] fields = at.getJavaClass().getDeclaredFields();
-		log.debug("looking at class " + at.getJavaClass());
-		if (NeoormUtil.instance().isNeoOrmAnnotationInClass(at.getJavaClass())) {
+		log.fine("looking at class " + at.getJavaClass());
+		if (NeoUtil.instance().isNeoOrmAnnotationInClass(at.getJavaClass())) {
 			for (Field f : fields) {
 				// look at field annotation classmember level
 				Annotation[] annotations = f.getAnnotations();
@@ -420,9 +197,9 @@ public class NeoORMExtension implements Extension {
 	public void initialPhase(@Observes BeforeBeanDiscovery evt) {
 		// do init stuff
 		// look in environment
-		String env = NeoormUtil.instance().getPathFromEnv();
+		String env = NeoUtil.instance().getPathFromEnv();
 		// scan class path
-		Properties prop = NeoormUtil.instance().loadFromClassPath();
+		Properties prop = NeoUtil.instance().loadFromClassPath();
 		String classpath = prop.getProperty("neo.path");
 
 		log.info("-------------------------------------------------------------");
@@ -461,13 +238,13 @@ public class NeoORMExtension implements Extension {
 										new FileInputStream(f)));
 								String path = prop.getProperty(NeoKey.NeoDbPath
 										.getValue());
-								log.debug("read path from properties file "
+								log.fine("read path from properties file "
 										+ path);
 							} catch (FileNotFoundException e) {
-								log.error("File " + f.getAbsolutePath()
+								log.severe("File " + f.getAbsolutePath()
 										+ " could not be found");
 							} catch (IOException e) {
-								log.error("File " + f.getAbsolutePath()
+								log.severe("File " + f.getAbsolutePath()
 										+ " could not be read");
 							}
 						}
@@ -497,9 +274,9 @@ public class NeoORMExtension implements Extension {
 						service = GraphDatabaseProducer.instance()
 								.getConfiguredInstance(db, path);
 					} catch (FileNotFoundException e) {
-						log.error(path + " could not be found");
+						log.severe(path + " could not be found");
 					} catch (IOException e) {
-						log.error(path + " could not be read");
+						log.severe(path + " could not be read");
 					}
 				} else {
 					if (new File(path).isDirectory()) {
@@ -516,7 +293,7 @@ public class NeoORMExtension implements Extension {
 										.getInstance(path);
 							}
 						} catch (Exception e) {
-							log.error("ATTENTION! COULD NOT CREATE DB INSTANCE ON PATH "
+							log.severe("ATTENTION! COULD NOT CREATE DB INSTANCE ON PATH "
 									+ path);
 							e.printStackTrace();
 						}
@@ -528,8 +305,8 @@ public class NeoORMExtension implements Extension {
 			}
 		}
 
-		log.info("Created {} graphdb instances {} ", instances.keySet().size(),
-				instances.keySet());
+		log.info("Created " + instances.keySet().size()
+				+ " graphdb instances {} " + instances.keySet());
 	}
 
 	class RefNodeProvider {

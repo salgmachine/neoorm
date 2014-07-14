@@ -186,6 +186,11 @@ class IndexedNeo implements GraphDatabaseService {
 			t.finish();
 		}
 	}
+
+	@Override
+	public boolean isAvailable(long arg0) {
+		return getIndexService().getGraphDatabase().isAvailable(arg0);
+	}
 }
 
 /**

@@ -103,29 +103,30 @@
         <dependency>
         	<groupId>org.neo4j</groupId>
         	<artifactId>neo4j</artifactId>
-        	<version>1.9.4</version>
+        	<version>1.9.8</version>
         </dependency>
         <dependency>
         	<groupId>org.neo4j</groupId>
         	<artifactId>neo4j-lucene-index</artifactId>
-        	<version>1.9.4</version>
-        </dependency>
-        <dependency>
-        	<groupId>org.slf4j</groupId>
-        	<artifactId>slf4j-api</artifactId>
-        	<version>1.7.2</version>
+        	<version>1.9.8</version>
         </dependency>
         <dependency>
         	<groupId>org.neo4j</groupId>
         	<artifactId>neo4j-kernel</artifactId>
-        	<version>1.9.4</version>
+        	<version>1.9.8</version>
         </dependency>
         <dependency>
         	<groupId>org.neo4j</groupId>
         	<artifactId>neo4j-cypher</artifactId>
         	<version>1.9.4</version>
         </dependency>
-    </dependencies>
+        <dependency>
+        	<groupId>junit</groupId>
+        	<artifactId>junit</artifactId>
+        	<version>4.10</version>
+        	<scope>test</scope>
+        </dependency>
+	</dependencies>
     <build>
         <finalName>${project.artifactId}</finalName>
         <plugins>

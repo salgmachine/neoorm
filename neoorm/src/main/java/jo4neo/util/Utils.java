@@ -7,6 +7,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 
+
 public class Utils {
 
 	private static volatile long counter;
@@ -15,7 +16,7 @@ public class Utils {
 	public static <T> T newObject(Class<T> c) {
 		if (Number.class.isAssignableFrom(c)) {
 			try {
-				return (T) c.getConstructor(String.class).newInstance(counter++);
+				return (T) c.getConstructor(String.class).newInstance(String.valueOf(counter++));
 			} catch (Exception e) {
 				runtime(e);
 			}
@@ -57,8 +58,7 @@ public class Utils {
 			return c.newInstance();
 		} catch (Exception e) {
 			System.out.println(c.isArray());
-			throw new RuntimeException("Type lacks default constructor:"
-					+ c.getName(), e);
+			throw new RuntimeException("Type lacks default constructor:" + c.getName(), e);
 		}
 	}
 

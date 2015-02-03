@@ -14,6 +14,8 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
+
 
 /**
  * 
@@ -28,49 +30,56 @@ class ObjectGraphImpl implements ObjectGraph {
 		ineo = new IndexedNeo(neo);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#beginTx()
 	 */
 	public Transaction beginTx() {
 		return ineo.beginTx();
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#persist(A)
 	 */
 	public <A> void persist(A... o) {
 		new PersistOperation<A>(ineo).save(o);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#get(java.lang.Object)
 	 */
 	public Node get(Object o) {
 		return ineo.asNode(o);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#delete(java.lang.Object)
 	 */
 	public void delete(Object... o) {
 		new DeleteOpertation(ineo).delete(o);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#get(java.lang.Class, long)
 	 */
 	public <T> T get(Class<T> t, long key) {
 		return new LoadOperation<T>(t, ineo).load(key);
 	}
-	
-	/* (non-Javadoc)
+
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#get(org.neo4j.graphdb.Node)
 	 */
 	public Object get(Node node) {
 		return new LoadOperation<Object>(Object.class, ineo).load(node);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#close()
 	 */
 	public void close() {
@@ -79,19 +88,37 @@ class ObjectGraphImpl implements ObjectGraph {
 
 	public <T> Collection<T> get(Class<T> t, String indexname, Object value) {
 		ArrayList<T> list = new ArrayList<T>();
-		for (Node n : ineo.getIndexService().get(indexname, value))
+
+		// IndexHits<Node> hits = ineo.getIndexService().get(indexname, value);
+		// String strippedField = indexname.substring(indexname.lastIndexOf(".") + 1, indexname.length())
+		// .replace("_INDEX", "");
+		// System.out.println(strippedField);
+		// String num = NumericUtils.intToPrefixCoded(Integer.parseInt(value.toString()));
+		// Query query = new TermQuery(new Term(indexname, num));
+
+		// IndexHits<Node> hits = ineo.getIndexService().query(q);
+		IndexHits<Node> hits = ineo.getIndexService().get(indexname, value.toString());
+		for (Node n : hits) {
+			if (n.hasProperty("jo4neo.Nodeid")
+					&& !n.getProperty("jo4neo.Nodeid").toString().equals(t.getCanonicalName())) {
+				continue;
+			}
+			// System.out.println("value: " + value + " " + n.getProperty(strippedField));
 			list.add(get(t, n.getId()));
+		}
 		return list;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#find(A)
 	 */
 	public <A> Where<A> find(A a) {
 		return new FieldValueMap<A>(a, this);
 	}
-	
-	/* (non-Javadoc)
+
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#count(java.util.Collection)
 	 */
 	public long count(Collection<? extends Object> values) {
@@ -99,51 +126,57 @@ class ObjectGraphImpl implements ObjectGraph {
 			return ((Lazy) values).getCount();
 		return 0;
 	}
-	
+
 	public <T> T getSingle(Class<T> t, String indexname, Object value) {
 		return new LoadOperation<T>(t, ineo).load(indexname, value);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#get(java.lang.Class)
 	 */
 	public <T> Collection<T> get(Class<T> t) {
 		return new LoadOperation<T>(t, ineo).loadAll();
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#getAddedSince(java.lang.Class, java.util.Date)
 	 */
 	public <T> Collection<T> getAddedSince(Class<T> t, Date d) {
 		return new LoadOperation<T>(t, ineo).since(d.getTime());
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#getAddedBetween(java.lang.Class, java.util.Date, java.util.Date)
 	 */
 	public <T> Collection<T> getAddedBetween(Class<T> t, Date from, Date to) {
-		return new LoadOperation<T>(t, ineo).within(from.getTime(), to
-				.getTime());
+		return new LoadOperation<T>(t, ineo).within(from.getTime(), to.getTime());
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#getMostRecent(java.lang.Class, int)
 	 */
 	public <T> Collection<T> getMostRecent(Class<T> t, int max) {
-		if ( supportsRecency(t))
+		if (supportsRecency(t))
 			return new LoadOperation<T>(t, ineo).latest(max);
-		else 
-			throw new RuntimeException("Recency unsupported for " + t + ": must be annotated as @neo(recency=true)");
+		else
+			throw new RuntimeException("Recency unsupported for " + t
+					+ ": must be annotated as @neo(recency=true)");
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#get(java.net.URI)
 	 */
 	public Node get(URI uri) {
 		return ineo.getURINode(uri);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see jo4neo.ObjectGraph#get(java.lang.Class, java.lang.Iterable)
 	 */
 	public <T> Collection<T> get(Class<T> type, Iterable<Node> nodes) {
@@ -156,13 +189,13 @@ class ObjectGraphImpl implements ObjectGraph {
 
 	/**
 	 * returns a collection of objects that match the query string (full-text).
+	 * 
 	 * @param t the type of the returned objects
 	 * @param indexname the key
 	 * @param value the query string, (part of) the value
 	 * @return a collection with all hits
 	 */
-	public <T> Collection<T> fullTextQuery(Class<T> t, String indexname,
-			Object value) {
+	public <T> Collection<T> fullTextQuery(Class<T> t, String indexname, Object value) {
 		ArrayList<T> list = new ArrayList<T>();
 		Index<Node> index = ineo.getFullTextIndexService();
 		for (Node n : index.query(indexname, value))
@@ -173,19 +206,11 @@ class ObjectGraphImpl implements ObjectGraph {
 }
 
 /**
- * jo4neo is a java object binding library for neo4j Copyright (C) 2009 Taylor
- * Cowan
- * 
- * This program is free software: you can redistribute it and/or modify it under
- * the terms of the GNU Affero General Public License as published by the Free
- * Software Foundation, either version 3 of the License, or (at your option) any
- * later version.
- * 
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
- * details.
- * 
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * jo4neo is a java object binding library for neo4j Copyright (C) 2009 Taylor Cowan This program is free
+ * software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+ * later version. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Affero General Public License for more details. You should have received a copy of the GNU Affero General
+ * Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
  */

@@ -28,10 +28,13 @@ import org.neo4j.graphdb.Traverser.Order;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.index.lucene.TimelineIndex;
 
+
 class LoadOperation<T> implements LoadCollectionOps {
 
 	IndexedNeo neo;
+
 	Class<?> cls;
+
 	Map<Long, Object> cache;
 
 	public LoadOperation(IndexedNeo ineo) {
@@ -49,8 +52,9 @@ class LoadOperation<T> implements LoadCollectionOps {
 		Node n = neo.getNodeById(key);
 		TypeWrapper type = nodesJavaType(n);
 		if (!type.assignableTo(cls))
-			throw new NotFoundException("Node " + key + " cannot be seen as a "
-					+ cls);
+			// throw new NotFoundException("Node " + key + " cannot be seen as a "
+			// + cls);
+			return null;
 		if (n == null)
 			return null;
 		Object o = loadDirect(n);
@@ -75,7 +79,7 @@ class LoadOperation<T> implements LoadCollectionOps {
 				break;
 			results.add((T) loadDirect(node));
 		}
-			return results;
+		return results;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -103,16 +107,14 @@ class LoadOperation<T> implements LoadCollectionOps {
 	}
 
 	private void single(Node n, FieldContext field) {
-		for (Relationship r : field.relationships(n, neo.getRelationFactory(),
-				Direction.OUTGOING)) {
+		for (Relationship r : field.relationships(n, neo.getRelationFactory(), Direction.OUTGOING)) {
 			field.setProperty(loadDirect(r.getEndNode()));
 			return;
 		}
 	}
 
 	private void inverse(Node n, FieldContext field) {
-		for (Relationship r : field.relationships(n, neo.getRelationFactory(),
-				Direction.INCOMING)) {
+		for (Relationship r : field.relationships(n, neo.getRelationFactory(), Direction.INCOMING)) {
 			field.setProperty(loadDirect(r.getStartNode()));
 			return;
 		}
@@ -163,16 +165,12 @@ class LoadOperation<T> implements LoadCollectionOps {
 		}
 	}
 
-	private Iterable<Relationship> outgoingRelationships(FieldContext field,
-			Node n) {
-		return n.getRelationships(field.toRelationship(neo.getRelationFactory()),
-				Direction.OUTGOING);
+	private Iterable<Relationship> outgoingRelationships(FieldContext field, Node n) {
+		return n.getRelationships(field.toRelationship(neo.getRelationFactory()), Direction.OUTGOING);
 	}
 
-	private Iterable<Relationship> incommingRelationships(FieldContext field,
-			Node n) {
-		return n.getRelationships(field.toRelationship(neo.getRelationFactory()),
-				Direction.INCOMING);
+	private Iterable<Relationship> incommingRelationships(FieldContext field, Node n) {
+		return n.getRelationships(field.toRelationship(neo.getRelationFactory()), Direction.INCOMING);
 	}
 
 	public Object loadDirect(Node n) {
@@ -200,8 +198,7 @@ class LoadOperation<T> implements LoadCollectionOps {
 	/**
 	 * Each node created is annotated with the javatype from whence it came.
 	 * 
-	 * @param n
-	 *           neo4j node.
+	 * @param n neo4j node.
 	 * @return
 	 */
 	public static TypeWrapper nodesJavaType(Node n) {
@@ -220,7 +217,7 @@ class LoadOperation<T> implements LoadCollectionOps {
 	public Collection<T> since(long since) {
 		timelineAnnotationRequired();
 		TimelineIndex<Node> tl = neo.getTimeLine(cls);
-		
+
 		return load(tl.getBetween(since, null));
 	}
 
@@ -233,12 +230,10 @@ class LoadOperation<T> implements LoadCollectionOps {
 	 */
 	private void timelineAnnotationRequired() {
 		if (!cls.isAnnotationPresent((Class<? extends Annotation>) Timeline.class))
-			throw new UnsupportedOperationException(msg(
-					MISSING_TIMELINE_ANNOTATION, cls));
+			throw new UnsupportedOperationException(msg(MISSING_TIMELINE_ANNOTATION, cls));
 	}
 
 	/**
-	 * 
 	 * @param from
 	 * @param to
 	 * @return
@@ -251,10 +246,10 @@ class LoadOperation<T> implements LoadCollectionOps {
 
 	public Collection<T> latest(long max) {
 		Node metanode = neo.getMetaNode(cls);
-		Traverser tvsr = metanode.traverse(Order.BREADTH_FIRST,
-				StopEvaluator.END_OF_GRAPH,
-				ReturnableEvaluator.ALL_BUT_START_NODE,
-				Relationships.JO4NEO_NEXT_MOST_RECENT, Direction.OUTGOING);
+		Traverser tvsr = metanode
+			.traverse(Order.BREADTH_FIRST, StopEvaluator.END_OF_GRAPH,
+				ReturnableEvaluator.ALL_BUT_START_NODE, Relationships.JO4NEO_NEXT_MOST_RECENT,
+				Direction.OUTGOING);
 		return load(tvsr, max);
 	}
 
@@ -271,11 +266,8 @@ class LoadOperation<T> implements LoadCollectionOps {
 	public long count(FieldContext field, Direction direction) {
 		long count = 0;
 		Node n = getNode(field);
-		for (
-				Iterator<Relationship> i = field.relationships(n, neo.getRelationFactory(),
-				direction).iterator();
-				i.hasNext();
-				i.next()) {
+		for (Iterator<Relationship> i = field.relationships(n, neo.getRelationFactory(), direction)
+			.iterator(); i.hasNext(); i.next()) {
 			count++;
 		}
 		return count;
@@ -287,8 +279,7 @@ class LoadOperation<T> implements LoadCollectionOps {
 		try {
 			TypeWrapper type = nodesJavaType(n);
 			if (!type.assignableTo(cls))
-				throw new NotFoundException(n + " cannot be seen as a "
-						+ cls);
+				throw new NotFoundException(n + " cannot be seen as a " + cls);
 			if (n == null)
 				return null;
 			Object o = loadDirect(n);
@@ -300,24 +291,15 @@ class LoadOperation<T> implements LoadCollectionOps {
 			t.finish();
 		}
 	}
-	
-	
+
 }
 
 /**
- * jo4neo is a java object binding library for neo4j Copyright (C) 2009 Taylor
- * Cowan
- * 
- * This program is free software: you can redistribute it and/or modify it under
- * the terms of the GNU Affero General Public License as published by the Free
- * Software Foundation, either version 3 of the License, or (at your option) any
- * later version.
- * 
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
- * details.
- * 
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * jo4neo is a java object binding library for neo4j Copyright (C) 2009 Taylor Cowan This program is free
+ * software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+ * later version. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Affero General Public License for more details. You should have received a copy of the GNU Affero General
+ * Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
  */

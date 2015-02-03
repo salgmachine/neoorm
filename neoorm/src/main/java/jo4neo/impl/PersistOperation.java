@@ -22,6 +22,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.index.lucene.ValueContext;
 
 class PersistOperation<T> {
 
@@ -172,7 +173,8 @@ class PersistOperation<T> {
 		field.applyTo(node);
 		if (field.value() != null && field.isIndexed()) {
 			index().remove(node, field.getIndexName(), field.value());
-			index().add(node, field.getIndexName(), field.value());
+			ValueContext ctx = new ValueContext(field.value()); 
+			index().add(node, field.getIndexName(), ctx);
 		} else if (field.value() != null && field.isFullText()) {
 			Index<Node> is = neo.getFullTextIndexService();
 			is.remove(node, field.getIndexName(), field.value());

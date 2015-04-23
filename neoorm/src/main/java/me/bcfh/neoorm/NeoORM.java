@@ -1,17 +1,13 @@
 package me.bcfh.neoorm;
 
-import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Date;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ejb.LocalBean;
-import javax.ejb.Stateless;
 
 import jo4neo.ObjectGraph;
-import jo4neo.neo;
 import jo4neo.fluent.Where;
 
 import org.neo4j.cypher.javacompat.ExecutionEngine;
@@ -20,14 +16,13 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
+
 /**
  * This class delegates calls to the ObjectGraph of jo4neo
  * 
  * @author salgmachine
  * @version 0.5.0
  */
-@Stateless
-@LocalBean
 public class NeoORM implements ObjectGraph {
 
 	public NeoORM() {
@@ -38,7 +33,7 @@ public class NeoORM implements ObjectGraph {
 		this.objectGraph = graph;
 	}
 
-	private Long timestamp = System.currentTimeMillis();
+	private final Long timestamp = System.currentTimeMillis();
 
 	private ObjectGraph objectGraph;
 
@@ -81,8 +76,7 @@ public class NeoORM implements ObjectGraph {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((timestamp == null) ? 0 : timestamp.hashCode());
+		result = prime * result + ((timestamp == null) ? 0 : timestamp.hashCode());
 		return result;
 	}
 
@@ -188,6 +182,7 @@ public class NeoORM implements ObjectGraph {
 	@Override
 	public void close() {
 		this.objectGraph.close();
+		this.svc.shutdown();
 	}
 
 	@Override
@@ -226,8 +221,7 @@ public class NeoORM implements ObjectGraph {
 	}
 
 	@Override
-	public <T> Collection<T> fullTextQuery(Class<T> t, String indexname,
-			Object value) {
+	public <T> Collection<T> fullTextQuery(Class<T> t, String indexname, Object value) {
 		return this.objectGraph.fullTextQuery(t, indexname, value);
 	}
 
@@ -248,10 +242,8 @@ public class NeoORM implements ObjectGraph {
 	public <T> T getOrCreate(Class<T> c) {
 		Collection<T> list = this.get(c);
 
-		
-		
 		if (list.size() == 0) {
-			
+
 		}
 		return null;
 	}

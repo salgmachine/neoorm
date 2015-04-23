@@ -10,8 +10,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.PersistenceException;
-
 import jo4neo.Nodeid;
 import jo4neo.UniqueConstraintViolation;
 import jo4neo.util.Lazy;
@@ -24,9 +22,11 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.index.lucene.ValueContext;
 
+
 class PersistOperation<T> {
 
 	IndexedNeo neo;
+
 	Map<Long, Object> visited;
 
 	public PersistOperation(IndexedNeo neo) {
@@ -47,8 +47,8 @@ class PersistOperation<T> {
 
 	private void save(Node node, Object o) {
 		/*
-		 * cycle detection object graphs may contain cycles, which would cause
-		 * infinite recursion without this check
+		 * cycle detection object graphs may contain cycles, which would cause infinite recursion without this
+		 * check
 		 */
 		if (visited.containsKey(node.getId()))
 			return;
@@ -110,11 +110,10 @@ class PersistOperation<T> {
 		// throw new RuntimeException("field.getIndexName() was null");
 
 		if (field.value() == null)
-			throw new PersistenceException(
-					"Tried to insert a null Value into a unique Field [" + field.getFieldname() + "] on node " + field.subject);
+			throw new RuntimeException("Tried to insert a null Value into a unique Field ["
+					+ field.getFieldname() + "] on node " + field.subject);
 
-		Iterator<Node> n = index().query(field.getIndexName(), field.value())
-				.iterator();
+		Iterator<Node> n = index().query(field.getIndexName(), field.value()).iterator();
 
 		List<Node> nodes = new ArrayList<Node>();
 
@@ -130,8 +129,7 @@ class PersistOperation<T> {
 		for (Node node2 : nodes) {
 			// System.out.println("iterator node id " + node2.getId());
 			for (String s : node2.getPropertyKeys()) {
-				System.out.println(" { " + s + " : " + node2.getProperty(s)
-						+ " }");
+				System.out.println(" { " + s + " : " + node2.getProperty(s) + " }");
 				if (node2.getProperty(s).equals(field.value())) {
 					found = true;
 				}
@@ -173,7 +171,7 @@ class PersistOperation<T> {
 		field.applyTo(node);
 		if (field.value() != null && field.isIndexed()) {
 			index().remove(node, field.getIndexName(), field.value());
-			ValueContext ctx = new ValueContext(field.value()); 
+			ValueContext ctx = new ValueContext(field.value());
 			index().add(node, field.getIndexName(), ctx);
 		} else if (field.value() != null && field.isFullText()) {
 			Index<Node> is = neo.getFullTextIndexService();
@@ -188,8 +186,7 @@ class PersistOperation<T> {
 
 	private void relations(Node node, FieldContext field) {
 		Collection<?> values = field.values();
-		RelationshipType reltype = field.toRelationship(neo
-				.getRelationFactory());
+		RelationshipType reltype = field.toRelationship(neo.getRelationFactory());
 
 		// initialize null collections to a lazy loader
 		if (values == null) {
@@ -232,8 +229,7 @@ class PersistOperation<T> {
 	}
 
 	private void relate(Node node, FieldContext field) {
-		RelationshipType reltype = field.toRelationship(neo
-				.getRelationFactory());
+		RelationshipType reltype = field.toRelationship(neo.getRelationFactory());
 		deleteAll(node, reltype);
 		if (field.value() == null)
 			return;
@@ -246,27 +242,18 @@ class PersistOperation<T> {
 	}
 
 	private void deleteAll(Node node, RelationshipType reltype) {
-		for (Relationship r : node
-				.getRelationships(reltype, Direction.OUTGOING))
+		for (Relationship r : node.getRelationships(reltype, Direction.OUTGOING))
 			r.delete();
 	}
 
 }
 
 /**
- * jo4neo is a java object binding library for neo4j Copyright (C) 2009 Taylor
- * Cowan
- * 
- * This program is free software: you can redistribute it and/or modify it under
- * the terms of the GNU Affero General Public License as published by the Free
- * Software Foundation, either version 3 of the License, or (at your option) any
- * later version.
- * 
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
- * details.
- * 
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * jo4neo is a java object binding library for neo4j Copyright (C) 2009 Taylor Cowan This program is free
+ * software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+ * later version. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Affero General Public License for more details. You should have received a copy of the GNU Affero General
+ * Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
  */

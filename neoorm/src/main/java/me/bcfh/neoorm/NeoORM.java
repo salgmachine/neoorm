@@ -1,5 +1,6 @@
 package me.bcfh.neoorm;
 
+import java.io.Serializable;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Date;
@@ -23,7 +24,12 @@ import org.neo4j.graphdb.Transaction;
  * @author salgmachine
  * @version 0.5.0
  */
-public class NeoORM implements ObjectGraph {
+public class NeoORM implements ObjectGraph, Serializable {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 8953260728190282472L;
 
 	public NeoORM() {
 

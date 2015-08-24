@@ -19,6 +19,7 @@ public class OrmProvider {
 	}
 
 	public static NeoORM getOrm() {
+		instance.setSvc(SERVICE);
 		return instance;
 	}
 
